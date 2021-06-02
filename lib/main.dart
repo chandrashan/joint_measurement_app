@@ -3,10 +3,11 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_email_sender/flutter_email_sender.dart';
+import 'package:flutter_mailer/flutter_mailer.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() async {
   runApp(MyApp());
@@ -291,19 +292,42 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _sendEmail(String address) async {
-    final Email email = Email(
-      body: 'Angle 1 : ${_getAngleValue(analyzeResults["photo_1_angle"])} \n'
-          'Angle 2 : ${_getAngleValue(analyzeResults["photo_2_angle"])} \n'
-          'Angle 3 : ${_getAngleValue(analyzeResults["photo_3_angle"])} \n',
-      subject: 'Joint measurement analyze results',
-      recipients: [address],
-      isHTML: false,
-    );
+    const GMAIL_SCHEMA = 'com.google.android.gm';
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString("email", address);
+    final bool gmailinstalled =  await FlutterMailer.isAppInstalled(GMAIL_SCHEMA);
 
-    await FlutterEmailSender.send(email);
+    var mailBody = 'Angle 1 : ${_getAngleValue(analyzeResults["photo_1_angle"])} \n'
+        'Angle 2 : ${_getAngleValue(analyzeResults["photo_2_angle"])} \n'
+        'Angle 3 : ${_getAngleValue(analyzeResults["photo_3_angle"])} \n';
+
+    var mailSubject = 'Joint measurement analyze results';
+
+    if(gmailinstalled) {
+      final MailOptions mailOptions = MailOptions(
+        body: mailBody,
+        subject: mailSubject,
+        recipients: [address],
+        isHTML: false,
+      );
+
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString("email", address);
+
+      final MailerResponse response = await FlutterMailer.send(mailOptions);
+    } else {
+      final bool canSend = await FlutterMailer.canSendMail();
+
+      if(!canSend && Platform.isIOS) {
+        final url = 'mailto:$address?body=$mailBody&subject=$mailSubject';
+        if (await canLaunch(url)) {
+          await launch(url);
+        } else {
+          throw 'Could not launch $url';
+        }
+      }
+    }
+
   }
 
   @override
