@@ -230,7 +230,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _resultImageBlock(String? imageContent) {
     if (imageContent != null && imageContent.isNotEmpty) {
-      var data = Base64Decoder().convert(imageContent.trim());
+      var data = Base64Decoder().convert(Base64Codec().normalize(imageContent.trim()));
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: Image.memory(data),
@@ -246,6 +246,9 @@ class _MyHomePageState extends State<MyHomePage> {
         data,
         _images,
         warmUp);
+
+    // No need to validate the response for warm up call
+    if (warmUp) return;
 
     if (response.statusCode == 200) {
       setState(() {
@@ -294,7 +297,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void _sendEmail(String address) async {
     const GMAIL_SCHEMA = 'com.google.android.gm';
 
-    final bool gmailinstalled =  await FlutterMailer.isAppInstalled(GMAIL_SCHEMA);
+    final bool gmailInstalled =  await FlutterMailer.isAppInstalled(GMAIL_SCHEMA);
 
     var mailBody = 'Angle 1 : ${_getAngleValue(analyzeResults["photo_1_angle"])} \n'
         'Angle 2 : ${_getAngleValue(analyzeResults["photo_2_angle"])} \n'
@@ -302,7 +305,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     var mailSubject = 'Joint measurement analyze results';
 
-    if(gmailinstalled) {
+    // if(gmailInstalled) {
       final MailOptions mailOptions = MailOptions(
         body: mailBody,
         subject: mailSubject,
@@ -315,18 +318,18 @@ class _MyHomePageState extends State<MyHomePage> {
       prefs.setString("email", address);
 
       final MailerResponse response = await FlutterMailer.send(mailOptions);
-    } else {
-      final bool canSend = await FlutterMailer.canSendMail();
-
-      if(!canSend && Platform.isIOS) {
-        final url = 'mailto:$address?body=$mailBody&subject=$mailSubject';
-        if (await canLaunch(url)) {
-          await launch(url);
-        } else {
-          throw 'Could not launch $url';
-        }
-      }
-    }
+    // } else {
+    //   final bool canSend = await FlutterMailer.canSendMail();
+    //
+    //   if(!canSend && Platform.isIOS) {
+    //     final url = 'mailto:$address?body=$mailBody&subject=$mailSubject';
+    //     if (await canLaunch(url)) {
+    //       await launch(url);
+    //     } else {
+    //       throw 'Could not launch $url';
+    //     }
+    //   }
+    // }
 
   }
 
