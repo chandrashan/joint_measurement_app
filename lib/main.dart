@@ -230,7 +230,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _resultImageBlock(String? imageContent) {
     if (imageContent != null && imageContent.isNotEmpty) {
-      var data = Base64Decoder().convert(Base64Codec().normalize(imageContent.trim()));
+      var data =
+          Base64Decoder().convert(Base64Codec().normalize(imageContent.trim()));
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: Image.memory(data),
@@ -295,17 +296,19 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _sendEmail(String address) async {
-    const GMAIL_SCHEMA = 'com.google.android.gm';
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString("email", address);
 
-    final bool gmailInstalled =  await FlutterMailer.isAppInstalled(GMAIL_SCHEMA);
-
-    var mailBody = 'Angle 1 : ${_getAngleValue(analyzeResults["photo_1_angle"])} \n'
+    var mailBody =
+        'Angle 1 : ${_getAngleValue(analyzeResults["photo_1_angle"])} \n'
         'Angle 2 : ${_getAngleValue(analyzeResults["photo_2_angle"])} \n'
         'Angle 3 : ${_getAngleValue(analyzeResults["photo_3_angle"])} \n';
 
     var mailSubject = 'Joint measurement analyze results';
 
-    // if(gmailInstalled) {
+    final bool canSend = await FlutterMailer.canSendMail();
+
+    if (Platform.isAndroid || canSend) {
       final MailOptions mailOptions = MailOptions(
         body: mailBody,
         subject: mailSubject,
@@ -313,24 +316,25 @@ class _MyHomePageState extends State<MyHomePage> {
         isHTML: false,
       );
 
-
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      prefs.setString("email", address);
-
       final MailerResponse response = await FlutterMailer.send(mailOptions);
-    // } else {
-    //   final bool canSend = await FlutterMailer.canSendMail();
-    //
-    //   if(!canSend && Platform.isIOS) {
-    //     final url = 'mailto:$address?body=$mailBody&subject=$mailSubject';
-    //     if (await canLaunch(url)) {
-    //       await launch(url);
-    //     } else {
-    //       throw 'Could not launch $url';
-    //     }
-    //   }
-    // }
-
+    } else {
+      if (Platform.isIOS) {
+        final Uri _emailLaunchUri = Uri(
+            scheme: 'mailto',
+            path: address,
+            queryParameters: {
+              'body': mailBody,
+              'subject': mailSubject
+            }
+        );
+        final url = _emailLaunchUri.toString();
+        if (await canLaunch(url)) {
+          await launch(url);
+        } else {
+          throw 'Could not launch $url';
+        }
+      }
+    }
   }
 
   @override
