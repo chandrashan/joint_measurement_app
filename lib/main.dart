@@ -17,11 +17,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Joint Measurement App',
+      title: 'Joint Measure',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(title: 'Joint Measurement App'),
+      home: MyHomePage(title: 'Joint Measure'),
     );
   }
 }
